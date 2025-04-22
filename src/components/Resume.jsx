@@ -205,6 +205,7 @@ const Resume = () => {
             name="summary"
             placeholder="Write a short summary about yourself"
             className="w-full border border-gray-300 p-3 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={formData.summary} // ✅ This ensures textarea shows updated value
             onChange={handleChange}
             onBlur={(e) => {
               setFormData((prev) => ({
@@ -215,39 +216,30 @@ const Resume = () => {
             onPaste={(e) => {
               e.preventDefault(); // Prevent the default paste behavior
 
-              // Get the pasted text
               let pastedText = e.clipboardData.getData("text");
 
-              // Normalize line breaks to \n and remove unwanted spaces
               pastedText = pastedText
-                .replace(/\r\n|\r/g, "\n") // Normalize all line breaks to \n
-                .replace(/^\s+|\s+$/g, "") // Trim leading and trailing spaces
-                .replace(/\n\s*\n/g, "\n"); // Remove multiple newlines
-
-              // Process the pasted text to add a bullet point to each line, ensuring no duplicates
-              pastedText = pastedText
-                .split("\n") // Split the pasted content into lines
-                .map((line, index) => {
-                  line = line.trim(); // Trim any leading or trailing spaces
-                  if (line.startsWith("•")) {
-                    // If it starts with a bullet point, remove the bullet point to prevent duplication
-                    return "• " + line.slice(1).trim(); // Add back a single bullet point
-                  }
-                  return "• " + line; // Add a bullet point to non-bullet lines
+                .replace(/\r\n|\r/g, "\n")
+                .replace(/^\s+|\s+$/g, "")
+                .replace(/\n\s*\n/g, "\n")
+                .split("\n")
+                .map((line) => {
+                  line = line.trim();
+                  return line.startsWith("•")
+                    ? "• " + line.slice(1).trim()
+                    : "• " + line;
                 })
-                .join("\n"); // Join the lines back together into a single string
+                .join("\n");
 
-              // Get the current content of the textarea and the cursor position
-              const currentValue = e.target.value;
-              const cursorPosition = e.target.selectionStart;
+              const textarea = e.target;
+              const { selectionStart, selectionEnd, value } = textarea;
 
-              // Insert the processed text back into the textarea at the cursor position
               const newText =
-                currentValue.substring(0, cursorPosition) +
+                value.slice(0, selectionStart) +
                 pastedText +
-                currentValue.substring(e.target.selectionEnd);
+                value.slice(selectionEnd);
 
-              // Update the form data with the new text
+              // Update formData
               setFormData((prev) => ({
                 ...prev,
                 summary: newText,
