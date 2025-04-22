@@ -45,13 +45,15 @@ const Resume = () => {
       return;
     }
 
+    // Split responsibilities into an array of lines and add bullet points before each line
     const formattedResponsibilities = project.responsibilities
-      .split(/[\n,]+/) // split by newlines or commas
+      .split(/[\n,]+/) // Split by newlines or commas
       .map((line) => {
-        const cleanLine = line.replace(/^[-ü•→✔➡→\t ]+/, "").trim(); // ✅ includes • now
-        return cleanLine ? `• ${cleanLine}` : null;
+        const cleanLine = line.replace(/^[-ü•→✔➡→\t ]+/, "").trim(); // Clean unwanted characters
+        return cleanLine ? `• ${cleanLine}` : null; // Add bullet point before line
       })
-      .filter(Boolean);
+      .filter(Boolean); // Remove empty lines
+
     const formattedProject = {
       title: project.title.trim(),
       role: project.role.trim(),
@@ -128,9 +130,17 @@ const Resume = () => {
       formDataToSend.append("summary", formData.summary.trim() || "");
       formDataToSend.append("presentCompany", formData.presentCompany || "");
       formDataToSend.append("skills", JSON.stringify(formData.skills || []));
+      // Formatting responsibilities for resume generation
+      const formattedProjects = formData.projects.map((proj) => {
+        return {
+          ...proj,
+          responsibilities: proj.responsibilities.join("\n"), // Join array with line breaks
+        };
+      });
+
       formDataToSend.append(
         "projects",
-        JSON.stringify(formData.projects || [])
+        JSON.stringify(formattedProjects || [])
       );
       formDataToSend.append("education", formData.education || "");
 
@@ -275,7 +285,12 @@ const Resume = () => {
                   <p className="font-semibold text-blue-700">{proj.title}</p>
                   <p className="text-sm text-gray-600">Role: {proj.role}</p>
                   <p className="text-sm text-gray-600">
-                    Responsibilities: {proj.responsibilities}
+                    Responsibilities:{" "}
+                    <ul className="list-disc pl-5">
+                      {proj.responsibilities.map((item, i) => (
+                        <li key={i}>{item.replace(/^•\s*/, "")}</li>
+                      ))}
+                    </ul>
                   </p>
                   <p className="text-sm text-gray-600">
                     Description: {proj.description}
