@@ -49,7 +49,7 @@ const Resume = () => {
       .split(/[\n,]+/) // split by newlines or commas
       .map((line) => {
         const cleanLine = line.replace(/^[-ü•→✔➡→\t ]+/, "").trim(); // ✅ includes • now
-        return cleanLine ? ` ${cleanLine}` : null;
+        return cleanLine ? `• ${cleanLine}` : null;
       })
       .filter(Boolean);
     const formattedProject = {
