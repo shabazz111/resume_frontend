@@ -46,9 +46,9 @@ const Resume = () => {
     }
 
     const formattedResponsibilities = project.responsibilities
-    .split("\n")
+    .split(/[\n,]+/) // split by new lines or commas
     .map((line) => {
-      const cleanLine = line.replace(/^[-ü→✔➡→\t ]+/g, "").trim(); // strips all leading unwanted symbols
+      const cleanLine = line.replace(/^[-ü→✔➡→\t ]+/g, "").trim(); // remove leading symbols
       return cleanLine ? `• ${cleanLine}` : null;
     })
     .filter(Boolean);
