@@ -38,6 +38,7 @@ const LandingPage = () => {
               Stand out from the crowd with our AI-powered resume builder.
               Generate an ATS-friendly resume that gets you more interviews.
             </p>
+            
 
             <motion.button
               onClick={() => navigate("/resume")}
