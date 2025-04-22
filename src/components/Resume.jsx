@@ -47,8 +47,11 @@ const Resume = () => {
 
     const formattedResponsibilities = project.responsibilities
       .split("\n")
-      .map((line) => line.replace(/^[-ü•\t ]+/, "").trim())
-      .filter(Boolean); // array of cleaned lines
+      .map((line) => {
+        const cleanLine = line.replace(/^[^\w]*|[•→✔➡→\-]+/g, "").trim(); // removes leading junk and extra bullets
+        return cleanLine ? `${cleanLine}` : null;
+      })
+      .filter(Boolean);
 
     const formattedProject = {
       title: project.title.trim(),
@@ -133,7 +136,7 @@ const Resume = () => {
       formDataToSend.append("education", formData.education || "");
 
       const response = await axios.post(
-        "http://localhost:5000/api/resumes/generate",
+        "https://resume-backend-i655.onrender.com/api/resumes/generate",
         formDataToSend,
         { responseType: "blob" }
       );
@@ -202,7 +205,6 @@ const Resume = () => {
             name="summary"
             placeholder="Write a short summary about yourself"
             className="w-full border border-gray-300 p-3 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            rows={4}
             onChange={handleChange}
             onBlur={(e) => {
               setFormData((prev) => ({
