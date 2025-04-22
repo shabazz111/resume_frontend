@@ -45,12 +45,23 @@ const Resume = () => {
       return;
     }
 
+    const formattedResponsibilities = project.responsibilities
+      .split("\n")
+      .map((line) => line.replace(/^[-ü•\t ]+/, "").trim())
+      .filter(Boolean); // array of cleaned lines
+
+    const formattedProject = {
+      title: project.title.trim(),
+      role: project.role.trim(),
+      responsibilities: formattedResponsibilities, // 👈 store as array
+      description: project.description.trim(),
+    };
+
     setFormData((prevFormData) => ({
       ...prevFormData,
-      projects: [...prevFormData.projects, project],
+      projects: [...prevFormData.projects, formattedProject],
     }));
 
-    // Clear project input
     setProject({
       title: "",
       role: "",
@@ -71,10 +82,6 @@ const Resume = () => {
     }));
   };
 
-  // Handle input changes
-  //   const handleChange = (e) => {
-  //     setFormData({ ...formData, [e.target.name]: e.target.value });
-  //   };
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -116,7 +123,7 @@ const Resume = () => {
       const formDataToSend = new FormData();
       formDataToSend.append("name", formData.name || "");
       formDataToSend.append("role", formData.role || "");
-      formDataToSend.append("summary", formData.summary || "");
+      formDataToSend.append("summary", formData.summary.trim() || "");
       formDataToSend.append("presentCompany", formData.presentCompany || "");
       formDataToSend.append("skills", JSON.stringify(formData.skills || []));
       formDataToSend.append(
@@ -131,18 +138,30 @@ const Resume = () => {
         { responseType: "blob" }
       );
 
+      // Helper to capitalize the first letter
+      const capitalize = (str) =>
+        str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+
+      // Construct file name like: shabazz_angular_HSS.docx
+      const namePart = capitalize(
+        formData.name?.split(" ")[0]?.toLowerCase() || "user"
+      );
+      const rolePart = capitalize(formData.role?.toLowerCase() || "developer");
+      const fileName = `${namePart}_${rolePart}_HSS.docx`;
+
       // Download the generated DOCX file
       const blob = new Blob([response.data], {
         type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       });
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
-      link.download = "generated_resume.docx";
+      link.download = fileName;
       link.click();
     } catch (error) {
       console.error("Error generating resume:", error);
     }
   };
+
   return (
     <div className="min-h-screen p-4 md:p-8 bg-gradient-to-br from-blue-50 to-white">
       <div className="max-w-5xl mx-auto p-6 bg-white rounded-xl shadow-2xl">
@@ -185,6 +204,53 @@ const Resume = () => {
             className="w-full border border-gray-300 p-3 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             rows={4}
             onChange={handleChange}
+            onBlur={(e) => {
+              setFormData((prev) => ({
+                ...prev,
+                summary: prev.summary.trim(),
+              }));
+            }}
+            onPaste={(e) => {
+              e.preventDefault(); // Prevent the default paste behavior
+
+              // Get the pasted text
+              let pastedText = e.clipboardData.getData("text");
+
+              // Normalize line breaks to \n and remove unwanted spaces
+              pastedText = pastedText
+                .replace(/\r\n|\r/g, "\n") // Normalize all line breaks to \n
+                .replace(/^\s+|\s+$/g, "") // Trim leading and trailing spaces
+                .replace(/\n\s*\n/g, "\n"); // Remove multiple newlines
+
+              // Process the pasted text to add a bullet point to each line, ensuring no duplicates
+              pastedText = pastedText
+                .split("\n") // Split the pasted content into lines
+                .map((line, index) => {
+                  line = line.trim(); // Trim any leading or trailing spaces
+                  if (line.startsWith("•")) {
+                    // If it starts with a bullet point, remove the bullet point to prevent duplication
+                    return "• " + line.slice(1).trim(); // Add back a single bullet point
+                  }
+                  return "• " + line; // Add a bullet point to non-bullet lines
+                })
+                .join("\n"); // Join the lines back together into a single string
+
+              // Get the current content of the textarea and the cursor position
+              const currentValue = e.target.value;
+              const cursorPosition = e.target.selectionStart;
+
+              // Insert the processed text back into the textarea at the cursor position
+              const newText =
+                currentValue.substring(0, cursorPosition) +
+                pastedText +
+                currentValue.substring(e.target.selectionEnd);
+
+              // Update the form data with the new text
+              setFormData((prev) => ({
+                ...prev,
+                summary: newText,
+              }));
+            }}
           ></textarea>
         </div>
 
