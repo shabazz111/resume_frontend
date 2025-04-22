@@ -46,13 +46,12 @@ const Resume = () => {
     }
 
     const formattedResponsibilities = project.responsibilities
-    .split(/[\n,]+/) // split by new lines or commas
-    .map((line) => {
-      const cleanLine = line.replace(/^[-ü→✔➡→\t ]+/g, "").trim(); // remove leading symbols
-      return cleanLine ? `• ${cleanLine}` : null;
-    })
-    .filter(Boolean);
-
+      .split(/[\n,]+/) // split by newlines or commas
+      .map((line) => {
+        const cleanLine = line.replace(/^[-ü•→✔➡→\t ]+/, "").trim(); // ✅ includes • now
+        return cleanLine ? ` ${cleanLine}` : null;
+      })
+      .filter(Boolean);
     const formattedProject = {
       title: project.title.trim(),
       role: project.role.trim(),
