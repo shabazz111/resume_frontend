@@ -48,7 +48,7 @@ const Resume = () => {
     const formattedResponsibilities = project.responsibilities
       .split("\n")
       .map((line) => {
-        const cleanLine = line.replace(/^[^\w]*|[•→✔➡→\-]+/g, "").trim(); // removes leading junk and extra bullets
+        const cleanLine = line.replace(/^[^\w]*|[-ü•→✔➡→\-]+/g, "").trim(); // removes leading junk and extra bullets
         return cleanLine ? `${cleanLine}` : null;
       })
       .filter(Boolean);
