@@ -2,17 +2,18 @@ import React, { useState } from "react";
 import { FaTrash, FaEdit } from "react-icons/fa";
 import axios from "axios";
 import { X } from "lucide-react"; // Import delete icon
+import { useDispatch, useSelector } from "react-redux";
+import {
+  updateField,
+  addProject,
+  deleteProject,
+  updateSkills,
+  setProjects,
+} from "../redux/resumeSlice";
+
 const Resume = () => {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    role: "",
-    presentCompany: "",
-    summary: "",
-    projects: [], // ✅ Add this!
-    education: "",
-  });
+  const dispatch = useDispatch();
+  const formData = useSelector((state) => state.resume);
 
   const [project, setProject] = useState({
     title: "",
@@ -20,22 +21,46 @@ const Resume = () => {
     responsibilities: "",
     description: "",
   });
-  const [errors, setErrors] = useState({
-    phone: false,
-  });
+
+  const [errors, setErrors] = useState({ phone: false });
   const [showProjectForm, setShowProjectForm] = useState(false);
 
-  const [experienceList, setExperienceList] = useState([]);
-  const [experience, setExperience] = useState({
-    role: "",
-    company: "",
-    duration: "",
-  });
-  const [skills, setSkills] = useState([{ title: "", skill: "" }]);
+  const [skills, setSkills] = useState(formData.skills || []);
+  // 🔧 Input change handler
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    if (name === "phone") {
+      const numericValue = value.replace(/\D/g, "");
+      if (numericValue.length <= 10) {
+        dispatch(updateField({ field: name, value: numericValue }));
+      }
+      setErrors({ ...errors, phone: numericValue.length !== 10 });
+    } else {
+      dispatch(updateField({ field: name, value }));
+    }
+  };
 
-  // Add Project
-  // Add Project
-  const addProject = () => {
+  // 🔧 Skills handlers
+  const handleSkillChange = (index, key, value) => {
+    setSkills((prevSkills) =>
+      prevSkills.map((item, i) =>
+        i === index ? { ...item, [key]: value } : item
+      )
+    );
+  };
+
+  const addSkillRow = () => {
+    setSkills((prev) => [...prev, { title: "", skill: "" }]);
+  };
+
+  const removeSkillRow = (index) => {
+    setSkills((prev) => prev.filter((_, i) => i !== index));
+  };
+  const handleDeleteProject = (index) => {
+    dispatch(deleteProject(index));
+  };
+
+  const handleAddProject = () => {
     if (
       project.title.trim() === "" &&
       project.role.trim() === "" &&
@@ -45,26 +70,22 @@ const Resume = () => {
       return;
     }
 
-    // Split responsibilities into an array of lines and add bullet points before each line
     const formattedResponsibilities = project.responsibilities
-      .split(/[\n,]+/) // Split by newlines or commas
+      .split(/[\n,]+/)
       .map((line) => {
-        const cleanLine = line.replace(/^[-ü•→✔➡→\t ]+/, "").trim(); // Clean unwanted characters
-        return cleanLine ? `• ${cleanLine}` : null; // Add bullet point before line
+        const cleanLine = line.replace(/^[-ü•→✔➡→\t ]+/, "").trim();
+        return cleanLine ? `• ${cleanLine}` : null;
       })
-      .filter(Boolean); // Remove empty lines
+      .filter(Boolean);
 
-    const formattedProject = {
-      title: project.title.trim(),
-      role: project.role.trim(),
-      responsibilities: formattedResponsibilities, // 👈 store as array
-      description: project.description.trim(),
-    };
-
-    setFormData((prevFormData) => ({
-      ...prevFormData,
-      projects: [...prevFormData.projects, formattedProject],
-    }));
+    dispatch(
+      addProject({
+        title: project.title.trim(),
+        role: project.role.trim(),
+        responsibilities: formattedResponsibilities,
+        description: project.description.trim(),
+      })
+    );
 
     setProject({
       title: "",
@@ -76,92 +97,55 @@ const Resume = () => {
     setShowProjectForm(false);
   };
 
-  // Delete Project
-  const deleteProject = (indexToDelete) => {
-    setFormData((prevFormData) => ({
-      ...prevFormData,
-      projects: prevFormData.projects.filter(
-        (_, index) => index !== indexToDelete
-      ),
-    }));
-  };
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-
-    if (name === "phone") {
-      const numericValue = value.replace(/\D/g, "");
-
-      if (numericValue.length <= 10) {
-        setFormData({ ...formData, [name]: numericValue });
-      }
-
-      setErrors({
-        ...errors,
-        phone: numericValue.length !== 10,
-      });
-    } else {
-      setFormData({ ...formData, [name]: value });
-    }
-  };
-
-  const handleSkillChange = (index, field, value) => {
-    const newSkills = [...skills];
-    newSkills[index][field] = value;
-    setSkills(newSkills);
-    setFormData({ ...formData, skills: newSkills });
-  };
-
-  // Add Skill
-  const addSkillRow = () => {
-    setSkills([...skills, { title: "", skill: "" }]);
-  };
-
-  const removeSkillRow = (index) => {
-    const newSkills = skills.filter((_, i) => i !== index);
-    setSkills(newSkills);
-  };
-
+  // 🧾 Resume generation
   const generateResume = async () => {
     try {
+      // Log the current skills state to verify it's correct
+      console.log("Skills being sent:", skills);
+
+      // Update formData with the current skills state
+      const updatedFormData = { ...formData, skills }; // Ensure skills are included
+
+      // Log the updated formData for debugging
+      console.log("Updated Form Data:", updatedFormData);
+
       const formDataToSend = new FormData();
-      formDataToSend.append("name", formData.name || "");
-      formDataToSend.append("role", formData.role || "");
-      formDataToSend.append("summary", formData.summary.trim() || "");
-      formDataToSend.append("presentCompany", formData.presentCompany || "");
-      formDataToSend.append("skills", JSON.stringify(formData.skills || []));
-      // Formatting responsibilities for resume generation
-      const formattedProjects = formData.projects.map((proj) => {
-        return {
-          ...proj,
-          responsibilities: proj.responsibilities.join("\n"), // Join array with line breaks
-        };
-      });
+      const formattedProjects = updatedFormData.projects.map((proj) => ({
+        ...proj,
+        responsibilities: proj.responsibilities.join("\n"),
+      }));
 
+      formDataToSend.append("name", updatedFormData.name || "");
+      formDataToSend.append("role", updatedFormData.role || "");
+      formDataToSend.append("summary", updatedFormData.summary.trim() || "");
       formDataToSend.append(
-        "projects",
-        JSON.stringify(formattedProjects || [])
+        "presentCompany",
+        updatedFormData.presentCompany || ""
       );
-      formDataToSend.append("education", formData.education || "");
+      formDataToSend.append(
+        "skills",
+        JSON.stringify(updatedFormData.skills || [])
+      ); // Skills are being appended here
+      formDataToSend.append("projects", JSON.stringify(formattedProjects));
+      formDataToSend.append("education", updatedFormData.education || "");
 
+      // Send the request
       const response = await axios.post(
         "https://resume-backend-i655.onrender.com/api/resumes/generate",
         formDataToSend,
         { responseType: "blob" }
       );
 
-      // Helper to capitalize the first letter
       const capitalize = (str) =>
         str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
-
-      // Construct file name like: shabazz_angular_HSS.docx
       const namePart = capitalize(
-        formData.name?.split(" ")[0]?.toLowerCase() || "user"
+        updatedFormData.name?.split(" ")[0]?.toLowerCase() || "user"
       );
-      const rolePart = capitalize(formData.role?.toLowerCase() || "developer");
+      const rolePart = capitalize(
+        updatedFormData.role?.toLowerCase() || "developer"
+      );
       const fileName = `${namePart}_${rolePart}_HSS.docx`;
 
-      // Download the generated DOCX file
       const blob = new Blob([response.data], {
         type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       });
@@ -217,10 +201,12 @@ const Resume = () => {
             value={formData.summary} // ✅ This ensures textarea shows updated value
             onChange={handleChange}
             onBlur={(e) => {
-              setFormData((prev) => ({
-                ...prev,
-                summary: prev.summary.trim(),
-              }));
+              dispatch(
+                updateField({
+                  field: "summary",
+                  value: formData.summary.trim(),
+                })
+              );
             }}
             onPaste={(e) => {
               e.preventDefault(); // Prevent the default paste behavior
@@ -249,10 +235,7 @@ const Resume = () => {
                 value.slice(selectionEnd);
 
               // Update formData
-              setFormData((prev) => ({
-                ...prev,
-                summary: newText,
-              }));
+              dispatch(updateField({ field: "summary", value: newText }));
             }}
           ></textarea>
         </div>
@@ -345,7 +328,7 @@ const Resume = () => {
                 }
               />
               <button
-                onClick={addProject}
+                onClick={handleAddProject}
                 className="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition"
               >
                 Add Project
